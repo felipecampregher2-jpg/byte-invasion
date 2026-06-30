@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>BYTE INVASION</title>
+
+<!--
+  ========================================================================
+  GOOGLE ADSENSE — INSTRUÇÕES
+  ========================================================================
+  1) Crie sua conta em https://www.google.com/adsense e aguarde aprovação.
+  2) Quando aprovado, você receberá um Publisher ID no formato: ca-pub-1234567890123456
+  3) Substitua TODAS as ocorrências de "SEU-PUBLISHER-ID-AQUI" neste arquivo
+     pelo seu Publisher ID real (use Ctrl+H / Find & Replace).
+  4) No painel do AdSense, crie 2 unidades de anúncio "Display" e pegue o
+     "data-ad-slot" de cada uma. Substitua "SEU-AD-SLOT-TOPO" e
+     "SEU-AD-SLOT-RODAPE" pelos valores reais.
+  5) Os anúncios só aparecem de verdade depois que o Google aprovar o site
+     E o domínio/URL estiver acessível publicamente (ex: GitHub Pages).
+  ========================================================================
+-->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-SEU-PUBLISHER-ID-AQUI" crossorigin="anonymous"></script>
+
+<style>
+  :root{
+    --bg: #08140c;
+    --crt: #39ff8c;
+    --crt-dim: #1f8c52;
+    --amber: #ffb000;
+    --red: #ff3b4e;
+    --panel: #0d2015;
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+  html, body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--crt);
+    font-family: 'Courier New', monospace;
+    width:100%; height:100%;
+    overflow-x:hidden;
+  }
+
+  body{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+    padding: 8px 8px 12px;
+  }
+
+  /* ---------- AD SLOT ---------- */
+  .ad-slot{
+    width:100%;
+    max-width: 480px;
+    min-height: 56px;
+    margin: 0 auto 8px;
+    border: 1px dashed var(--crt-dim);
+    border-radius: 2px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color: var(--crt-dim);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    flex-shrink:0;
+    overflow:hidden;
+  }
+  .ad-slot.ad-footer{ margin: 12px auto 0; }
+  .ad-slot ins.adsbygoogle{ width:100%; }
+
+  /* ---------- TITLE ---------- */
+  .title-block{
+    text-align:center;
+    margin: 2px 0 8px;
+  }
+  .title-block h1{
+    font-family: 'Courier New', monospace;
+    font-weight:900;
+    font-size: clamp(20px, 6vw, 32px);
+    letter-spacing: 4px;
+    margin:0;
+    color: var(--crt);
+    text-shadow: 0 0 6px var(--crt), 0 0 14px rgba(57,255,140,0.5);
+  }
+  .title-block .sub{
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--amber);
+    margin-top: 2px;
+  }
+
+  /* ---------- HUD ---------- */
+  .hud{
+    display:flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 480px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    padding: 0 4px;
+  }
+  .hud span b{ color: var(--amber); }
+  .lives-wrap{ display:flex; gap:4px; align-items:center; }
+
+  /* ---------- STAGE ---------- */
+  .stage-wrap{
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  canvas{
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    display:block;
+    background: #03100a;
+    border: 3px solid var(--crt-dim);
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000 inset, 0 0 24px rgba(57,255,140,0.15);
+    image-rendering: pixelated;
+    touch-action: none;
+  }
+
+  .scanlines{
+    position:absolute;
+    inset:3px;
+    border-radius:4px;
+    pointer-events:none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.18) 0px,
+      rgba(0,0,0,0.18) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: multiply;
+  }
+
+  .overlay{
+    position:absolute;
+    inset:3px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    background: rgba(3,16,10,0.94);
+    border-radius: 4px;
+    padding: 18px;
+    gap: 12px;
+  }
+  .overlay.hidden{ display:none; }
+  .overlay h2{
+    font-size: clamp(16px,4.5vw,22px);
+    margin:0;
+    letter-spacing: 2px;
+    color: var(--amber);
+    text-shadow: 0 0 8px rgba(255,176,0,0.6);
+  }
+  .overlay p{
+    margin:0;
+    font-size: 11px;
+    color: var(--crt-dim);
+    max-width: 300px;
+    line-height: 1.6;
+    letter-spacing: 0.5px;
+  }
+  .overlay .score-big{
+    font-size: 26px;
+    color: var(--crt);
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px var(--crt);
+  }
+
+  button{
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: var(--crt);
+    color: #03100a;
+    border: none;
+    padding: 11px 24px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  button:active{ background: var(--amber); }
+
+  /* ---------- TOUCH CONTROLS ---------- */
+  .controls{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    width: 100%;
+    max-width: 480px;
+    margin-top: 10px;
+    gap: 10px;
+  }
+  .dpad{
+    display:flex;
+    gap: 10px;
+  }
+  .ctrl-btn{
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    background: var(--panel);
+    border: 2px solid var(--crt-dim);
+    color: var(--crt);
+    font-size: 22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  .ctrl-btn:active{ background: var(--crt-dim); }
+  .fire-btn{
+    width: 84px;
+    height: 64px;
+    border-radius: 8px;
+    background: var(--panel);
+    border: 2px solid var(--red);
+    color: var(--red);
+    font-size: 13px;
+    font-weight:bold;
+    letter-spacing: 1px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .fire-btn:active{ background: var(--red); color:#03100a; }
+
+  .desktop-hint{
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--crt-dim);
+    letter-spacing: 1px;
+    text-align:center;
+  }
+
+  @media (min-width: 700px){
+    .controls{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ANÚNCIO TOPO -->
+  <div class="ad-slot ad-top">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-SEU-PUBLISHER-ID-AQUI"
+         data-ad-slot="SEU-AD-SLOT-TOPO"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+  </div>
+
+  <div class="title-block">
+    <h1>BYTE INVASION</h1>
+    <div class="sub">defenda o setor 0x1A</div>
+  </div>
+
+  <div class="hud">
+    <span>SCORE <b id="score-label">0</b></span>
+    <span>ONDA <b id="wave-label">1</b></span>
+    <div class="lives-wrap">VIDAS <span id="lives-label"></span></div>
+  </div>
+
+  <div class="stage-wrap">
+    <canvas id="game" width="320" height="420"></canvas>
+    <div class="scanlines"></div>
+
+    <div class="overlay" id="start-overlay">
+      <h2>PRONTO, COMANDANTE?</h2>
+      <p>
+        Mova com as setas / A-D ou os botões na tela.<br/>
+        Atire com ESPAÇO ou o botão FOGO.<br/>
+        Derrote a onda antes que eles cheguem até você.
+      </p>
+      <button id="start-btn">INICIAR</button>
+    </div>
+
+    <div class="overlay hidden" id="gameover-overlay">
+      <h2>SETOR PERDIDO</h2>
+      <div class="score-big" id="final-score">0</div>
+      <p>Recorde: <b id="best-score">0</b></p>
+      <button id="retry-btn">TENTAR DE NOVO</button>
+    </div>
+
+    <div class="overlay hidden" id="wave-overlay">
+      <h2 id="wave-title">ONDA 2</h2>
+      <p>Eles estão mais rápidos agora.</p>
+      <button id="continue-btn">CONTINUAR</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="dpad">
+      <div class="ctrl-btn" id="btn-left">◀</div>
+      <div class="ctrl-btn" id="btn-right">▶</div>
+    </div>
+    <div class="fire-btn" id="btn-fire">FOGO</div>
+  </div>
+
+  <p class="desktop-hint">teclado: ← → ou A D para mover · ESPAÇO para atirar</p>
+
+  <!-- ANÚNCIO RODAPÉ -->
+  <div class="ad-slot ad-footer">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-SEU-PUBLISHER-ID-AQUI"
+         data-ad-slot="SEU-AD-SLOT-RODAPE"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+  </div>
+
+  <script>
+    // Ativa os 2 blocos de anúncio acima (topo e rodapé).
+    // Isso só vai exibir anúncios reais depois que você preencher
+    // os IDs do AdSense e o site estiver aprovado.
+    (adsbygoogle = window.adsbygoogle || []).push({});
+    (adsbygoogle = window.adsbygoogle || []).push({});
+  </script>
+
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const W = canvas.width, H = canvas.height;
+
+  const startOverlay = document.getElementById('start-overlay');
+  const gameoverOverlay = document.getElementById('gameover-overlay');
+  const waveOverlay = document.getElementById('wave-overlay');
+  const scoreLabel = document.getElementById('score-label');
+  const waveLabel = document.getElementById('wave-label');
+  const livesLabel = document.getElementById('lives-label');
+  const finalScoreEl = document.getElementById('final-score');
+  const bestScoreEl = document.getElementById('best-score');
+  const waveTitleEl = document.getElementById('wave-title');
+
+  let best = parseInt(localStorage.getItem('invasion_best') || '0', 10);
+
+  // ---------------- AUDIO (procedural, 8-bit style beeps) ----------------
+  let audioCtx = null;
+  function getCtx(){
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+  function beep(freq, dur, type='square', vol=0.15){
+    try{
+      const ctx2 = getCtx();
+      const osc = ctx2.createOscillator();
+      const gain = ctx2.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol, ctx2.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx2.currentTime + dur);
+      osc.connect(gain).connect(ctx2.destination);
+      osc.start();
+      osc.stop(ctx2.currentTime + dur);
+    }catch(e){}
+  }
+  function sfxShoot(){ beep(880, 0.08, 'square', 0.08); }
+  function sfxHit(){ beep(140, 0.15, 'sawtooth', 0.12); }
+  function sfxPlayerHit(){ beep(90, 0.3, 'sawtooth', 0.18); }
+  function sfxWave(){ beep(220,0.1); setTimeout(()=>beep(330,0.1),100); setTimeout(()=>beep(440,0.15),200); }
+
+  // ---------------- PIXEL SPRITES (drawn as bit-grids, no external assets) ----------------
+  // 1 = filled pixel, 0 = empty. Each sprite scaled up at draw time.
+  const SPRITES = {
+    invaderA: [
+      [0,0,1,0,0,0,0,1,0,0],
+      [0,0,0,1,0,0,1,0,0,0],
+      [0,0,1,1,1,1,1,1,0,0],
+      [0,1,1,0,1,1,0,1,1,0],
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,0,1,1,1,1,1,1,0,1],
+      [1,0,1,0,0,0,0,1,0,1],
+      [0,0,0,1,1,1,1,0,0,0],
+    ],
+    invaderA_alt: [
+      [0,0,1,0,0,0,0,1,0,0],
+      [1,0,0,1,0,0,1,0,0,1],
+      [1,0,1,1,1,1,1,1,0,1],
+      [1,1,1,0,1,1,0,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1],
+      [0,0,1,1,1,1,1,1,0,0],
+      [0,1,0,0,0,0,0,0,1,0],
+      [1,0,0,0,0,0,0,0,0,1],
+    ],
+    invaderB: [
+      [0,0,0,1,1,1,1,0,0,0],
+      [0,1,1,1,1,1,1,1,1,0],
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,1,0,1,1,1,1,0,1,1],
+      [1,1,1,1,1,1,1,1,1,1],
+      [0,0,1,0,1,1,0,1,0,0],
+      [0,1,0,1,0,0,1,0,1,0],
+      [1,0,1,0,0,0,0,1,0,1],
+    ],
+    invaderB_alt: [
+      [0,0,0,1,1,1,1,0,0,0],
+      [0,1,1,1,1,1,1,1,1,0],
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,1,0,1,1,1,1,0,1,1],
+      [1,1,1,1,1,1,1,1,1,1],
+      [0,1,0,1,0,0,1,0,1,0],
+      [1,0,1,0,1,1,0,1,0,1],
+      [0,1,0,0,0,0,0,0,1,0],
+    ],
+    boss: [
+      [0,0,1,1,1,1,1,1,0,0],
+      [0,1,1,1,1,1,1,1,1,0],
+      [1,1,0,1,1,1,1,0,1,1],
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,0,1,1,1,1,1,1,0,1],
+      [0,1,1,0,0,0,0,1,1,0],
+      [0,0,1,1,0,0,1,1,0,0],
+    ],
+    player: [
+      [0,0,0,0,1,1,0,0,0,0],
+      [0,0,0,1,1,1,1,0,0,0],
+      [0,0,0,1,1,1,1,0,0,0],
+      [0,1,1,1,1,1,1,1,1,0],
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,1,0,1,1,1,1,0,1,1],
+      [1,0,0,0,0,0,0,0,0,1],
+    ]
+  };
+
+  function drawSprite(grid, x, y, px, color){
+    ctx.fillStyle = color;
+    for(let r=0;r<grid.length;r++){
+      for(let c=0;c<grid[r].length;c++){
+        if(grid[r][c]){
+          ctx.fillRect(Math.round(x + c*px), Math.round(y + r*px), px, px);
+        }
+      }
+    }
+  }
+
+  // ---------------- GAME STATE ----------------
+  let running = false;
+  let score = 0;
+  let wave = 1;
+  let lives = 3;
+  let player, bullets, enemyBullets, enemies, particles;
+  let keys = {};
+  let lastShot = 0;
+  let frameTimer = 0;
+  let enemyDir = 1;
+  let enemyStepTimer = 0;
+  let enemyStepInterval = 600;
+  let gameLoopId = null;
+
+  function resetPlayer(){
+    player = {
+      x: W/2 - 14,
+      y: H - 36,
+      w: 28, h: 16,
+      px: 2.8,
+      alive: true,
+      blinkUntil: 0
+    };
+  }
+
+  function buildEnemies(waveNum){
+    const list = [];
+    const rows = Math.min(4 + Math.floor((waveNum-1)/2), 6);
+    const cols = 6;
+    const spacingX = 38;
+    const spacingY = 32;
+    const startX = (W - (cols-1)*spacingX) / 2 - 10;
+    const startY = 36;
+    const types = ['invaderA','invaderB','invaderA','invaderB'];
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        list.push({
+          x: startX + c*spacingX,
+          y: startY + r*spacingY,
+          w: 22, h: 18,
+          type: types[r % types.length],
+          alive: true,
+          frame: 0
+        });
+      }
+    }
+    return list;
+  }
+
+  function startWave(waveNum){
+    enemies = buildEnemies(waveNum);
+    enemyDir = 1;
+    enemyStepInterval = Math.max(140, 600 - (waveNum-1)*55);
+    enemyStepTimer = 0;
+    bullets = [];
+    enemyBullets = [];
+    particles = [];
+  }
+
+  function fullReset(){
+    score = 0;
+    wave = 1;
+    lives = 3;
+    resetPlayer();
+    startWave(wave);
+    updateHud();
+  }
+
+  function updateHud(){
+    scoreLabel.textContent = score;
+    waveLabel.textContent = wave;
+    livesLabel.innerHTML = '';
+    for(let i=0;i<lives;i++){
+      livesLabel.innerHTML += '▮';
+    }
+  }
+
+  // ---------------- INPUT ----------------
+  window.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true;
+    if(e.key === ' ') e.preventDefault();
+  });
+  window.addEventListener('keyup', (e) => {
+    keys[e.key.toLowerCase()] = false;
+  });
+
+  function bindHold(el, onDown, onUp){
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); }, {passive:false});
+    el.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); }, {passive:false});
+    el.addEventListener('mousedown', (e) => { e.preventDefault(); onDown(); });
+    el.addEventListener('mouseup', (e) => { e.preventDefault(); onUp(); });
+    el.addEventListener('mouseleave', () => onUp());
+  }
+  bindHold(document.getElementById('btn-left'), () => keys['arrowleft']=true, () => keys['arrowleft']=false);
+  bindHold(document.getElementById('btn-right'), () => keys['arrowright']=true, () => keys['arrowright']=false);
+  bindHold(document.getElementById('btn-fire'), () => keys[' ']=true, () => keys[' ']=false);
+
+  // ---------------- GAME LOGIC ----------------
+  function tryShoot(now){
+    if(!player.alive) return;
+    if((keys[' '] || keys['arrowup']) && now - lastShot > 280){
+      bullets.push({x: player.x + player.w/2 - 1.5, y: player.y - 6, w:3, h:9});
+      sfxShoot();
+      lastShot = now;
+    }
+  }
+
+  function update(dt, now){
+    if(!running) return;
+
+    // player movement
+    const speed = 3.2;
+    if((keys['arrowleft'] || keys['a']) && player.x > 4) player.x -= speed;
+    if((keys['arrowright'] || keys['d']) && player.x < W - player.w - 4) player.x += speed;
+    tryShoot(now);
+
+    // bullets
+    bullets.forEach(b => b.y -= 5.5);
+    bullets = bullets.filter(b => b.y > -10);
+
+    enemyBullets.forEach(b => b.y += 3.2);
+    enemyBullets = enemyBullets.filter(b => b.y < H+10);
+
+    // enemy step movement (grid march)
+    enemyStepTimer += dt;
+    if(enemyStepTimer > enemyStepInterval){
+      enemyStepTimer = 0;
+      let hitEdge = false;
+      const aliveEnemies = enemies.filter(e=>e.alive);
+      for(const e of aliveEnemies){
+        if((e.x + e.w + enemyDir*14) > W-4 || (e.x + enemyDir*14) < 4){
+          hitEdge = true;
+        }
+      }
+      if(hitEdge){
+        enemyDir *= -1;
+        enemies.forEach(e => e.y += 14);
+      } else {
+        enemies.forEach(e => { e.x += enemyDir*14; e.frame = 1-e.frame; });
+      }
+      // random enemy fire
+      if(aliveEnemies.length){
+        if(Math.random() < 0.35){
+          const shooter = aliveEnemies[Math.floor(Math.random()*aliveEnemies.length)];
+          enemyBullets.push({x: shooter.x + shooter.w/2 - 1.5, y: shooter.y + shooter.h, w:3, h:9});
+        }
+      }
+    }
+
+    // collisions: player bullets vs enemies
+    for(const b of bullets){
+      for(const e of enemies){
+        if(!e.alive) continue;
+        if(rectHit(b,e)){
+          e.alive = false;
+          b.y = -999;
+          score += 10;
+          sfxHit();
+          spawnParticles(e.x+e.w/2, e.y+e.h/2);
+        }
+      }
+    }
+    bullets = bullets.filter(b => b.y > -50);
+
+    // collisions: enemy bullets vs player
+    if(player.alive){
+      for(const b of enemyBullets){
+        if(rectHit(b, player)){
+          b.y = H+999;
+          playerHit();
+          break;
+        }
+      }
+    }
+
+    // enemies reaching player line
+    const aliveNow = enemies.filter(e=>e.alive);
+    if(aliveNow.some(e => e.y + e.h >= player.y)){
+      playerHit(true);
+    }
+
+    // wave clear
+    if(aliveNow.length === 0 && running){
+      running = false;
+      wave++;
+      waveTitleEl.textContent = 'ONDA ' + wave;
+      sfxWave();
+      setTimeout(() => {
+        waveOverlay.classList.remove('hidden');
+      }, 400);
+    }
+
+    // particles
+    particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= dt; });
+    particles = particles.filter(p => p.life > 0);
+
+    updateHud();
+  }
+
+  function rectHit(a,b){
+    return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+  }
+
+  function spawnParticles(x,y){
+    for(let i=0;i<8;i++){
+      const ang = Math.random()*Math.PI*2;
+      const spd = 1+Math.random()*2;
+      particles.push({
+        x,y,
+        vx: Math.cos(ang)*spd,
+        vy: Math.sin(ang)*spd,
+        life: 300+Math.random()*200,
+        color: Math.random()<0.5 ? '#39ff8c' : '#ffb000'
+      });
+    }
+  }
+
+  function playerHit(instant){
+    if(!player.alive) return;
+    sfxPlayerHit();
+    lives--;
+    updateHud();
+    spawnParticles(player.x+player.w/2, player.y+player.h/2);
+    if(lives <= 0){
+      player.alive = false;
+      running = false;
+      endGame();
+    } else {
+      // brief invulnerability / reset position
+      player.x = W/2 - 14;
+    }
+  }
+
+  function endGame(){
+    if(score > best){
+      best = score;
+      localStorage.setItem('invasion_best', String(best));
+    }
+    finalScoreEl.textContent = score;
+    bestScoreEl.textContent = best;
+    setTimeout(() => gameoverOverlay.classList.remove('hidden'), 500);
+  }
+
+  // ---------------- DRAW ----------------
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#03100a';
+    ctx.fillRect(0,0,W,H);
+
+    // starfield dots (static seeded pattern via simple hash for stability)
+    ctx.fillStyle = 'rgba(57,255,140,0.25)';
+    for(let i=0;i<40;i++){
+      const sx = (i*37) % W;
+      const sy = (i*89 + frameTimer*0.02) % H;
+      ctx.fillRect(sx, sy, 1.5, 1.5);
+    }
+
+    // enemies
+    enemies.forEach(e => {
+      if(!e.alive) return;
+      const spriteKey = e.frame === 0 ? e.type : e.type + '_alt';
+      const sprite = SPRITES[spriteKey] || SPRITES[e.type];
+      drawSprite(sprite, e.x, e.y, e.w/10, '#39ff8c');
+    });
+
+    // bullets
+    ctx.fillStyle = '#ffe34d';
+    bullets.forEach(b => ctx.fillRect(b.x,b.y,b.w,b.h));
+    ctx.fillStyle = '#ff3b4e';
+    enemyBullets.forEach(b => ctx.fillRect(b.x,b.y,b.w,b.h));
+
+    // particles
+    particles.forEach(p => {
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, 2, 2);
+    });
+
+    // player
+    if(player && player.alive){
+      drawSprite(SPRITES.player, player.x, player.y, player.px, '#39ff8c');
+    }
+
+    // ground line
+    ctx.strokeStyle = 'rgba(57,255,140,0.3)';
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    ctx.moveTo(0, H-6);
+    ctx.lineTo(W, H-6);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ---------------- LOOP ----------------
+  let lastTime = performance.now();
+  function loop(now){
+    const dt = now - lastTime;
+    lastTime = now;
+    frameTimer += dt;
+    if(running){
+      update(dt, now);
+    }
+    draw();
+    gameLoopId = requestAnimationFrame(loop);
+  }
+
+  // ---------------- FLOW ----------------
+  document.getElementById('start-btn').addEventListener('click', () => {
+    startOverlay.classList.add('hidden');
+    fullReset();
+    running = true;
+  });
+
+  document.getElementById('retry-btn').addEventListener('click', () => {
+    gameoverOverlay.classList.add('hidden');
+    fullReset();
+    running = true;
+  });
+
+  document.getElementById('continue-btn').addEventListener('click', () => {
+    waveOverlay.classList.add('hidden');
+    startWave(wave);
+    player.x = W/2 - 14;
+    running = true;
+  });
+
+  // initial idle draw
+  resetPlayer();
+  startWave(1);
+  draw();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
